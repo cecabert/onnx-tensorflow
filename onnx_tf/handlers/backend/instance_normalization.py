@@ -31,12 +31,19 @@ class InstanceNormalization(BackendHandler):
     beta = tensor_dict[node.inputs[2]]
 
     inputs = tensor_dict[node.inputs[0]]
-    inputs_shape = inputs.shape
-    inputs_rank = inputs.shape.ndims
+    # Switch to dynamic shape handling
+    inputs_shape = tf.shape(inputs)           # inputs.shape
+    inputs_rank = tf.rank(inputs)             # inputs.shape.ndims
 
-    moments_axes = list(range(inputs_rank))[2:]
-    params_shape_broadcast = list(
-        [1, inputs_shape[1]] + [1 for _ in range(2, inputs_rank)])
+    # Assume input rank is at least 3
+    moments_axes = tf.range(inputs_rank)[2:]  # list(range(inputs_rank))[2:]
+    # params_shape_broadcast = list(
+    #    [1, inputs_shape[1]] + [1 for _ in range(2, inputs_rank)])
+    params_shape_broadcast = tf.concat([tf.convert_to_tensor([1,
+                                                              inputs_shape[1]]),
+                                        tf.ones(inputs_rank - 2,
+                                                dtype=tf.int32)],
+                                       axis=0)
 
     beta = tf.reshape(beta, params_shape_broadcast)
     gamma = tf.reshape(gamma, params_shape_broadcast)
